@@ -1,64 +1,89 @@
 package my.dev;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
-import org.apache.poi.wp.usermodel.Paragraph;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class Main {
 
     public static void main(String[] args) throws IOException {
-        /*try (FileInputStream fis = new FileInputStream("02_BarGU_monitoring_S_PRAVKAMI_2017_13062017.doc")) {
-            XWPFDocument doc = new XWPFDocument(fis);
 
-            List<XWPFParagraph> paragraphs = doc.getParagraphs();
-            StringBuilder result = new StringBuilder();
-            boolean flag = false;
-            for (XWPFParagraph paragraph : paragraphs) {
-                if (paragraph.getText().contains("ГРАЖДАНСТВЕННОСТЬ И ПАТРИОТИЗМ")) {
-                    System.out.println(22222);
-                    flag = false;
-                }
-                if (paragraph.getText().startsWith("1.4.2. Общественно значимые")) {
-                    System.out.println(1111);
-                    flag = true;
-                }
-                if (flag) {
-                    result.append(paragraph.getText());
-                }
-            }
-            System.out.println(result);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }*/
+        List<String> docs = new ArrayList<>();
 
-        FileInputStream fis = new FileInputStream("02_BarGU_monitoring_S_PRAVKAMI_2017_13062017.doc");
-        HWPFDocument document = new HWPFDocument(fis);
-        WordExtractor extractor = new WordExtractor(document);
-        String[] fileData = extractor.getParagraphText();
-        boolean flag = false;
-        StringBuilder result = new StringBuilder();
-        for (String str : fileData) {
-            if (str.contains("Научно-исследовательская деятельность в области")) {
-                System.out.println(22222);
-                flag = false;
-            }
-            if (str.contains("Мероприятия, направленные на развитие национального ")) {
-                System.out.println(1111);
-                flag = true;
-            }
-            if (flag) {
-                result.append(str);
+        try (Stream<Path> paths = Files.walk(Paths.get("d:\\Универы\\"))) {
+            paths
+                    .filter(Files::isRegularFile)
+                    .forEach(path -> docs.add(path.toAbsolutePath().toString()));
+        }
+
+        System.out.println(docs);
+
+        String start = "Мероприятия, направленные на развитие национального самосознания белорусских";
+        String end = "Научно-исследовательская деятельность в области истории";
+
+        for (String doc : docs) {
+
+            if (doc.endsWith("docx")) {
+
+                try (FileInputStream fis = new FileInputStream(doc)) {
+
+                    XWPFDocument document = new XWPFDocument(fis);
+                    XWPFWordExtractor extractor = new XWPFWordExtractor(document);
+                    List<XWPFParagraph> paragraphs = document.getParagraphs();
+                    boolean flag = false;
+                    StringBuilder sb = new StringBuilder();
+                    for (XWPFParagraph paragraph : paragraphs) {
+                        if (paragraph.getText().contains(start)) {
+                            flag = true;
+                        }
+                        if (paragraph.getText().contains(end)) {
+                            flag = false;
+                        }
+                        if (flag) {
+                            sb.append(paragraph.getText() + "\n");
+                        }
+                    }
+                    String resultDoc = doc.substring(11);
+                    System.out.println(resultDoc.toUpperCase());
+                    System.out.println(sb.toString());
+                }
+
+            } else if (doc.endsWith("doc")) {
+                try (FileInputStream fis = new FileInputStream(doc)) {
+
+                    HWPFDocument document = new HWPFDocument(fis);
+                    WordExtractor extractor = new WordExtractor(document);
+                    String[] fileData = extractor.getParagraphText();
+                    boolean flag = false;
+                    StringBuilder result = new StringBuilder();
+                    for (String str : fileData) {
+                        if (str.contains(start)) {
+                            flag = true;
+                        }
+                        if (str.contains(end)) {
+                            flag = false;
+                        }
+                        if (flag) {
+                            result.append(str);
+                        }
+                    }
+                    String resultDoc = doc.substring(11);
+                    System.out.println(resultDoc.toUpperCase());
+                    System.out.println(result);
+
+                }
             }
         }
-        System.out.println(result);
     }
 }
